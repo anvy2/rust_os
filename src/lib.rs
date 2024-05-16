@@ -4,12 +4,22 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
+#![feature(const_mut_refs)]
+extern crate alloc;
 use core::panic::PanicInfo;
 
+#[cfg(test)]
+use bootloader::{entry_point, BootInfo};
+
+pub mod allocator;
 pub mod gdt;
 pub mod interrupts;
+pub mod memory;
 pub mod serial;
 pub mod vga_buffer;
+
+#[cfg(test)]
+entry_point!(test_kernel_main);
 
 pub fn hlt_loop() -> ! {
     loop {
@@ -55,8 +65,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
 }
 
 #[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init(); // init interrupts
     test_main();
     hlt_loop();
