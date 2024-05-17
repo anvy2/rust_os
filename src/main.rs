@@ -8,7 +8,7 @@ use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use rust::{
     println,
-    task::{simple_executor::SimpleExecutor, Task},
+    task::{executor::Executor, keyboard, simple_executor::SimpleExecutor, Task},
 };
 use x86_64::VirtAddr;
 
@@ -26,14 +26,16 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap init failed");
 
-    let mut executor = SimpleExecutor::new();
-    executor.spawn(Task::new(example_task()));
-    executor.run();
-
     #[cfg(test)]
     test_main();
-    println!("It did not crash");
-    rust::hlt_loop();
+
+    let mut executor = Executor::new();
+    executor.spawn(Task::new(example_task()));
+    executor.spawn(Task::new(keyboard::print_keypressses()));
+    executor.run();
+
+    // println!("It did not crash");
+    // rust::hlt_loop();
 }
 
 async fn async_number() -> u32 {
